@@ -1,160 +1,238 @@
-# E‑Commerce (React + Vite • Node/Express • Prisma/PostgreSQL)
+# E-Commerce Application
 
-A compact yet production‑minded e‑commerce app demonstrating full‑stack skills: authentication, RBAC, product CRUD with image upload, cart, transactional checkout, and a clean React 19 UI. Built to highlight pragmatic engineering, correctness, and clarity.
+A full-stack e-commerce application built with React, Node.js, Express, Prisma, and PostgreSQL. Features role-based access control, product management with image uploads, shopping cart, and order processing.
 
-## Why this project stands out
-- **End‑to‑end flow:** Auth → RBAC → product catalogue → cart → transactional checkout → order history.
-- **Real DB modeling:** Prisma schema with referential integrity (Users, Products, Carts, Orders, OrderItems).
-- **Safety & correctness:** JWT‑based protection, role middleware, stock checks, and atomic order placement via transactions.
-- **Developer empathy:** Small, readable codebase, clear routes and controllers, easy local setup.
-- **Demonstrates product thinking:** Filtering, image uploads, UX basics, and a pragmatic roadmap of improvements.
+**Live Demo:** [Frontend](https://e-commerce-woad-tau.vercel.app/) · [API Health Check](https://e-commerce-72l2.onrender.com/api/health)
+
+> **Demo Admin:** `admin@demo.com` / `Admin@123`
+
+---
 
 ## Tech Stack
-- **Frontend:** React 19, Vite, React Router 7
-- **Backend:** Node.js, Express 5, Prisma ORM
-- **Database:** PostgreSQL
-- **Auth:** JWT (Bearer), bcrypt password hashing
-- **Uploads:** Multer + static `/uploads` serving
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, Vite, Material UI, React Router 7 |
+| Backend | Node.js, Express 5, Prisma ORM |
+| Database | PostgreSQL (Neon) |
+| Auth | JWT + bcrypt |
+| File Uploads | Multer |
+| Deployment | Vercel (frontend), Render (backend), Neon (database) |
+
+---
 
 ## Features
-- **Authentication:** Register, Login, `GET /api/auth/me` with JWT.
-- **Authorization:** `ADMIN` vs `CUSTOMER` via middleware.
-- **Products:** CRUD with optional image upload; search + min/max price filters.
-- **Cart:** Add, update quantity, remove; stock validation.
-- **Checkout:** Atomic order creation with stock decrement and cart clearing.
-- **Orders:** List historical orders including items and snapshot prices.
 
-## Monorepo Structure
+### Authentication & Authorization
+- JWT-based login and registration
+- Case-insensitive email handling
+- Role-based access control — `ADMIN` and `CUSTOMER` roles
+- Protected routes on both frontend and backend
+
+### Product Management (Admin)
+- Create, edit, and delete products
+- Image upload with preview
+- Stock tracking
+
+### Shopping Experience (Customer)
+- Browse and search products
+- Product detail pages with quantity selection
+- Add to cart with stock validation
+- Cart management — update quantities, remove items
+- Checkout with automatic stock decrement
+
+### Order System
+- Atomic order creation using database transactions
+- Order history with itemized details
+- Admin view of all orders across customers
+
+### UI/UX
+- Minimalist dark theme inspired by Linear and Vercel
+- Inter font, zinc color palette, indigo accent
+- Responsive sidebar layout with role-based navigation
+- Toast notifications for user feedback
+
+---
+
+## Project Structure
+
 ```
 ecommerce/
-  backend/
-    src/
-      app.js            # Express app, routes mounting, CORS, static /uploads
-      server.js         # Bootstraps server
-      controllers/      # auth, product, cart, order logic
-      routes/           # /api/auth, /api/products, /api/cart, /api/orders
-      middlewares/      # auth (JWT), role (ADMIN), upload (multer)
-      utils/prisma.js   # Prisma client
-      scripts/resetStock.js
-    prisma/
-      schema.prisma     # Models & enums
-      migrations/       # Postgres migrations
-    package.json
-    .env                # DATABASE_URL, JWT_SECRET, PORT (not committed)
-  frontend/vite-project/
-    src/
-      App.jsx           # Routes & auth state
-      ProductList.jsx   # Filters, admin actions
-      AddProduct.jsx    # Admin create (multipart)
-      EditProduct.jsx   # Admin update (multipart)
-      Cart.jsx          # Quantity update, checkout
-      Orders.jsx        # History
-      Login.jsx, Signup.jsx
-    vite.config.js
-    package.json
+├── backend/
+│   ├── src/
+│   │   ├── app.js                  # Express app setup, CORS, routes
+│   │   ├── server.js               # Server entry point
+│   │   ├── controllers/
+│   │   │   ├── auth.controller.js   # Login, register
+│   │   │   ├── product.controller.js
+│   │   │   ├── cart.controller.js
+│   │   │   └── order.controller.js
+│   │   ├── routes/
+│   │   │   ├── auth.routes.js
+│   │   │   ├── product.routes.js
+│   │   │   ├── cart.routes.js
+│   │   │   └── order.routes.js
+│   │   ├── middlewares/
+│   │   │   ├── auth.middleware.js    # JWT verification
+│   │   │   ├── role.middleware.js    # Admin-only guard
+│   │   │   └── upload.middleware.js  # Multer config
+│   │   └── utils/
+│   │       └── prisma.js            # Prisma client instance
+│   ├── prisma/
+│   │   ├── schema.prisma            # Database schema
+│   │   └── migrations/              # Migration history
+│   ├── uploads/                     # Product images
+│   └── package.json
+│
+├── frontend/vite-project/
+│   ├── src/
+│   │   ├── App.jsx                  # Routes, auth state, theme
+│   │   ├── Login.jsx
+│   │   ├── Signup.jsx
+│   │   ├── ProductList.jsx          # Product grid with search
+│   │   ├── ProductPage.jsx          # Product detail
+│   │   ├── AddProduct.jsx           # Admin: create product
+│   │   ├── EditProduct.jsx          # Admin: edit product
+│   │   ├── Cart.jsx                 # Shopping cart
+│   │   ├── Orders.jsx               # Customer order history
+│   │   ├── AdminOrders.jsx          # Admin: all orders
+│   │   ├── index.css                # Global styles + dark theme
+│   │   └── layout/
+│   │       └── DashboardLayout.jsx  # Sidebar + top bar
+│   ├── index.html
+│   └── package.json
+│
+├── .gitignore
+└── README.md
 ```
 
-## Getting Started
+---
+
+## API Endpoints
+
+All protected routes require `Authorization: Bearer <token>`.
+
+### Auth
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| POST | `/api/auth/register` | Public | Register a new user |
+| POST | `/api/auth/login` | Public | Login, returns JWT |
+| GET | `/api/auth/me` | Protected | Get current user info |
+
+### Products
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| GET | `/api/products` | Protected | List all products (supports `?search=`) |
+| GET | `/api/products/:id` | Protected | Get single product |
+| POST | `/api/products` | Admin | Create product (multipart form) |
+| PUT | `/api/products/:id` | Admin | Update product (multipart form) |
+| DELETE | `/api/products/:id` | Admin | Delete product |
+
+### Cart
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| GET | `/api/cart` | Protected | Get user's cart |
+| POST | `/api/cart/:productId` | Protected | Add product to cart |
+| PUT | `/api/cart/:id` | Protected | Update item quantity |
+| DELETE | `/api/cart/:id` | Protected | Remove item from cart |
+
+### Orders
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| POST | `/api/orders` | Protected | Place order (atomic transaction) |
+| GET | `/api/orders` | Protected | Get user's order history |
+| GET | `/api/orders/all` | Admin | Get all orders |
+
+---
+
+## Database Schema
+
+```
+User          Product        Cart           Order          OrderItem
+─────         ───────        ────           ─────          ─────────
+id            id             id             id             id
+name          name           userId    →    userId    →    orderId   →
+email         description    productId →    totalAmount    productId →
+password      price          quantity       createdAt      quantity
+role          stock                                        price
+createdAt     createdAt
+              imageUrl
+```
+
+---
+
+## Getting Started (Local Development)
 
 ### Prerequisites
-- Node 18+
-- PostgreSQL 14+ (local or remote)
+- Node.js 18+
+- PostgreSQL 14+
 
-### Backend setup
+### Backend
 ```bash
 cd backend
 npm install
 
-# Create .env (example)
-# DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ecommerce?schema=public"
-# JWT_SECRET="replace-with-strong-secret"
+# Create .env file
+# DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ecommerce_db?schema=public"
+# JWT_SECRET="your-secret-key"
 # PORT=5000
 
 npx prisma generate
 npx prisma migrate dev
-npm run dev
+npm run dev                 # Starts on port 5000
 ```
 
-Helpful:
-- `npx prisma studio` to inspect data
-- `npm run start` to run without nodemon
-- `node src/testPrisma.js` quick connectivity test
-
-### Frontend setup
+### Frontend
 ```bash
 cd frontend/vite-project
 npm install
-npm run dev
+npm run dev                 # Starts on port 5173
 ```
-Frontend expects the API at `http://localhost:5000` (configurable improvement noted below).
 
-## API Overview
-
-All protected routes require `Authorization: Bearer <token>`.
-
-- **Auth**
-  - `POST /api/auth/register` → `{ name, email, password }` → returns `{ message, user }`
-  - `POST /api/auth/login` → `{ email, password }` → returns `{ token, user }`
-  - `GET /api/auth/me` → returns `{ user }` for the current token
-
-- **Products**
-  - `GET /api/products?search=&min=&max=` (protected)
-  - `GET /api/products/:id` (protected)
-  - `POST /api/products` (ADMIN, multipart: `name, price, stock, description, image?`)
-  - `PUT /api/products/:id` (ADMIN, multipart; fields optional)
-  - `DELETE /api/products/:id` (ADMIN)
-
-- **Cart**
-  - `GET /api/cart`
-  - `POST /api/cart/:productId`
-  - `PUT /api/cart/:id` → `{ quantity }`
-  - `DELETE /api/cart/:id`
-
-- **Orders**
-  - `POST /api/orders` (transactional: creates order, decrements stock, clears cart)
-  - `GET /api/orders`
-
-## Frontend UX
-- **Auth‑aware nav** and route guards.
-- **Product list** with search and price filters, add‑to‑cart, and admin edit/delete.
-- **Admin forms** for add/edit with image preview and multipart uploads.
-- **Cart** with `+/-`, removal, and checkout.
-- **Orders** with item details and totals.
-
-## Security Notes
-- Passwords hashed with bcrypt.
-- JWT signed with `JWT_SECRET` (7‑day expiry).
-- `protect` middleware validates tokens and loads user; `adminOnly` enforces RBAC.
-- CORS enabled (default permissive for local dev).
-
-## Known Gaps + Polished Roadmap
-- **Signup token handoff:** Register endpoint currently returns `user` but no token, while the frontend expects a token to auto‑login. 
-  - Fix: return `{ token, user }` from `POST /api/auth/register`, or redirect to login on success.
-- **Product image column:** Backend uses `product.imageUrl` but `Product` lacks this field in `schema.prisma`.
-  - Fix: add `imageUrl String?` to `Product` and run a migration.
-- **Duplicate product routes:** There are two POST/PUT definitions (with and without multer). 
-  - Fix: keep only the multer versions to reliably handle both file/non‑file submissions.
-- **Cart prop:** `Cart.jsx` calls `onCheckout()` but parent doesn’t pass it.
-  - Fix: remove the callback or pass a no‑op.
-- **Config:** API base URL is hardcoded in the frontend.
-  - Improvement: use `VITE_API_URL` and `import.meta.env.VITE_API_URL`.
-
-Planned enhancements (time‑boxed):
-- Pagination + rate limiting on list endpoints.
-- Image cleanup on product updates/deletes.
-- Auth UX: refresh token / auto‑logout on 401.
-- Docker Compose for one‑command spin‑up.
-- Tests (Jest + Supertest) for controllers and routes.
-
-## Environment Variables
-- **Backend**
-  - `DATABASE_URL` (PostgreSQL)
-  - `JWT_SECRET`
-  - `PORT` (default 5000)
-- **Frontend (recommended)**
-  - `VITE_API_URL` (e.g. `http://localhost:5000`)
-
-## Screenshots (add your captures)
-- Login, Product list with filters, Admin edit, Cart, Orders
+### Create Admin Account
+```bash
+curl -X POST http://localhost:5000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Admin","email":"admin@demo.com","password":"Admin@123","role":"ADMIN"}'
+```
 
 ---
+
+## Deployment
+
+| Service | Purpose | Config |
+|---|---|---|
+| **Neon** | PostgreSQL database | Free tier, Singapore region |
+| **Render** | Backend API | Root dir: `backend`, Build: `npm install && npm run build`, Start: `npm start` |
+| **Vercel** | Frontend | Root dir: `frontend/vite-project`, env: `VITE_API_URL=<render-url>` |
+
+### Environment Variables
+
+**Backend (Render):**
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | Neon PostgreSQL connection string |
+| `JWT_SECRET` | Secret key for JWT signing |
+| `NODE_ENV` | `production` |
+
+**Frontend (Vercel):**
+| Variable | Description |
+|---|---|
+| `VITE_API_URL` | Backend API URL (no trailing slash) |
+
+---
+
+## Security
+
+- Passwords hashed with bcrypt (10 salt rounds)
+- JWT tokens with 7-day expiry
+- Role-based middleware on protected routes
+- Email normalization (case-insensitive)
+- Input validation on all endpoints
+- CORS enabled
+
+---
+
+## Author
+
+**Kshitij Singh** — [@kshitij-singh06](https://github.com/kshitij-singh06)
