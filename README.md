@@ -2,7 +2,7 @@
 
 A full-stack e-commerce application built with React, Node.js, Express, Prisma, and PostgreSQL. Features role-based access control, product management with image uploads, shopping cart, and order processing.
 
-**Live Demo:** [Frontend](https://e-commerce-woad-tau.vercel.app/) · [API Health Check](https://e-commerce-72l2.onrender.com/api/health)
+**Live Demo:** [Frontend](https://e-commerce-woad-tau.vercel.app/) 
 
 > **Demo Admin:** `admin@demo.com` / `Admin@123`
 
