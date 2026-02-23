@@ -112,3 +112,31 @@ exports.getMyOrders = async (req, res) => {
     res.status(500).json({ error: "Could not fetch orders" });
   }
 };
+
+// GET /api/orders/all  → admin: get ALL orders from ALL users
+exports.getAllOrders = async (req, res) => {
+  try {
+    const orders = await prisma.order.findMany({
+      include: {
+        user: {
+          select: { id: true, name: true, email: true },
+        },
+        orderItems: {
+          include: {
+            product: {
+              select: { name: true, price: true },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    res.json(orders);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not fetch all orders" });
+  }
+};

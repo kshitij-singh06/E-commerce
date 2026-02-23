@@ -1,136 +1,192 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect, useState, createContext, useCallback } from "react";
 
 import Login from "./Login";
 import Signup from "./Signup";
 import ProductList from "./ProductList";
 import Cart from "./Cart";
 import Orders from "./Orders";
+import AdminOrders from "./AdminOrders";
 import AddProduct from "./AddProduct";
 import EditProduct from "./EditProduct";
 import ProductPage from "./ProductPage";
+import DashboardLayout from "./layout/DashboardLayout";
+
+import { ThemeProvider, createTheme, CssBaseline, Snackbar, Alert } from "@mui/material";
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const theme = createTheme({
+  palette: {
+    mode: "dark",
+    background: {
+      default: "#09090b",
+      paper: "#18181b",
+    },
+    primary: {
+      main: "#6366f1",
+    },
+    text: {
+      primary: "#fafafa",
+      secondary: "#a1a1aa",
+    },
+    divider: "#27272a",
+  },
+  typography: {
+    fontFamily: "'Inter', sans-serif",
+    button: { textTransform: "none", fontWeight: 600 },
+  },
+  shape: { borderRadius: 8 },
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          backgroundImage: "none",
+          backgroundColor: "#18181b",
+          border: "1px solid #27272a",
+          borderRadius: 12,
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        containedPrimary: {
+          backgroundColor: "#6366f1",
+          "&:hover": { backgroundColor: "#4f46e5" },
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          "& .MuiOutlinedInput-root": {
+            "& fieldset": { borderColor: "#27272a" },
+            "&:hover fieldset": { borderColor: "#3f3f46" },
+            "&.Mui-focused fieldset": { borderColor: "#6366f1" },
+          },
+        },
+      },
+    },
+  },
+});
+
+export const ToastContext = createContext();
+export const CartContext = createContext();
 
 export default function App() {
-  const [token, setToken] = useState(localStorage.getItem("token"));  // <-- IMPORTANT
+  const [token, setToken] = useState(localStorage.getItem("token"));
   const [user, setUser] = useState(null);
+  const [toast, setToast] = useState({ open: false, message: "", severity: "success" });
+  const [cartCount, setCartCount] = useState(0);
+
+  const refreshCart = useCallback(() => {
+    const t = localStorage.getItem("token");
+    if (!t) { setCartCount(0); return; }
+    fetch(`${API}/api/cart`, { headers: { Authorization: `Bearer ${t}` } })
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => {
+        const total = Array.isArray(data) ? data.reduce((sum, item) => sum + item.quantity, 0) : 0;
+        setCartCount(total);
+      })
+      .catch(() => setCartCount(0));
+  }, []);
 
   const isLoggedIn = !!token;
 
-  // Fetch user when token changes
+  const showToast = useCallback((message, severity = "success") => {
+    setToast({ open: true, message, severity });
+  }, []);
+
   useEffect(() => {
     if (!token) {
       setUser(null);
       return;
     }
-
-    fetch("http://localhost:5000/api/auth/me", {
-      headers: { Authorization: `Bearer ${token}` }
+    fetch(`${API}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("Not authenticated");
+        return res.json();
+      })
       .then((data) => setUser(data.user))
-      .catch(() => setUser(null));
-  }, [token]); // <--- IMPORTANT
+      .catch(() => {
+        setUser(null);
+        localStorage.removeItem("token");
+        setToken(null);
+      });
+  }, [token]);
 
-  // Runs after Login success
+  useEffect(() => {
+    if (token) refreshCart();
+    else setCartCount(0);
+  }, [token, refreshCart]);
+
   const handleLoginSuccess = (newToken) => {
     localStorage.setItem("token", newToken);
-    setToken(newToken);              // <-- CRITICAL
+    setToken(newToken);
   };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    setToken(null);                  // <-- forces rerender correctly
+    setToken(null);
     setUser(null);
   };
 
   return (
     <Router>
-      <div>
-
-        {/* NAVBAR */}
-        {isLoggedIn && (
-          <div className="navbar">
-            <div className="nav-left">
-              <Link to="/products"><button>Products</button></Link>
-              <Link to="/cart"><button>Cart</button></Link>
-              <Link to="/orders"><button>Orders</button></Link>
-
-              {user?.role === "ADMIN" && (
-                <Link to="/admin/add-product"><button>Add Product</button></Link>
-              )}
-            </div>
-
-            <div className="nav-right">
-              <span>{user?.role === "ADMIN" ? "Admin" : user?.name}</span>
-              <button onClick={handleLogout}>Logout</button>
-            </div>
-          </div>
-        )}
-
-        <Routes>
-
-          {/* LOGIN */}
-          <Route
-            path="/login"
-            element={
-              isLoggedIn ? <Navigate to="/products" /> : <Login onLogin={handleLoginSuccess} />
-            }
-          />
-
-          {/* SIGNUP */}
-          <Route
-            path="/signup"
-            element={
-              isLoggedIn ? <Navigate to="/products" /> : <Signup onSignup={handleLoginSuccess} />
-            }
-          />
-
-          {/* USER ROUTES */}
-          <Route
-            path="/products"
-            element={isLoggedIn ? <ProductList user={user} /> : <Navigate to="/login" />}
-          />
-
-          <Route
-  path="/product/:id"
-  element={isLoggedIn ? <ProductPage user={user} /> : <Navigate to="/login" />}
-/>
-
-          <Route
-            path="/cart"
-            element={isLoggedIn ? <Cart /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/orders"
-            element={isLoggedIn ? <Orders /> : <Navigate to="/login" />}
-          />
-
-          {/* ADMIN ROUTES */}
-          {user?.role === "ADMIN" && (
-            <>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <ToastContext.Provider value={showToast}>
+          <CartContext.Provider value={{ cartCount, refreshCart }}>
+            <Routes>
               <Route
-                path="/admin/add-product"
-                element={<AddProduct />}
+                path="/login"
+                element={isLoggedIn ? <Navigate to="/products" /> : <Login onLogin={handleLoginSuccess} />}
+              />
+              <Route
+                path="/signup"
+                element={isLoggedIn ? <Navigate to="/products" /> : <Signup onSignup={handleLoginSuccess} />}
               />
 
-              <Route
-                path="/admin/edit-product/:id"
-                element={<EditProduct />}
-              />
-            </>
-          )}
+              <Route element={
+                isLoggedIn ? (
+                  <DashboardLayout user={user} logout={handleLogout} cartCount={cartCount} />
+                ) : (
+                  <Navigate to="/login" />
+                )
+              }>
+                <Route path="/products" element={<ProductList user={user} />} />
+                <Route path="/product/:id" element={<ProductPage user={user} />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/orders" element={<Orders />} />
+                <Route path="/admin/add-product" element={<AddProduct />} />
+                <Route path="/admin/edit-product/:id" element={<EditProduct />} />
+                <Route path="/admin/orders" element={<AdminOrders />} />
+              </Route>
 
-          {/* HOME */}
-          <Route
-            path="/"
-            element={<Navigate to={isLoggedIn ? "/products" : "/login"} />}
-          />
+              <Route path="/" element={<Navigate to={isLoggedIn ? "/products" : "/login"} />} />
+              <Route path="*" element={<Navigate to={isLoggedIn ? "/products" : "/login"} />} />
+            </Routes>
 
-          
-
-        </Routes>
-
-      </div>
+            <Snackbar
+              open={toast.open}
+              autoHideDuration={3000}
+              onClose={() => setToast((p) => ({ ...p, open: false }))}
+              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            >
+              <Alert
+                onClose={() => setToast((p) => ({ ...p, open: false }))}
+                severity={toast.severity}
+                variant="filled"
+                sx={{ fontSize: "0.85rem" }}
+              >
+                {toast.message}
+              </Alert>
+            </Snackbar>
+          </CartContext.Provider>
+        </ToastContext.Provider>
+      </ThemeProvider>
     </Router>
   );
 }

@@ -1,100 +1,170 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useContext } from "react";
+import {
+  Box,
+  Card,
+  CardMedia,
+  Typography,
+  Button,
+  IconButton,
+  Skeleton,
+  Breadcrumbs,
+  Link,
+} from "@mui/material";
+import {
+  ArrowBackRounded,
+  AddRounded,
+  RemoveRounded,
+} from "@mui/icons-material";
+import { ToastContext, CartContext } from "./App";
 
-export default function ProductPage({ user }) {
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+export default function ProductPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const token = localStorage.getItem("token");
+  const showToast = useContext(ToastContext);
+  const { refreshCart } = useContext(CartContext);
 
   const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchProduct = () => {
-    fetch(`http://localhost:5000/api/products/${id}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setProduct(data);
-        setLoading(false);
-      });
-  };
+  const [quantity, setQuantity] = useState(1);
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
-    fetchProduct();
-  }, [id]);
+    fetch(`${API}/api/products/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then(setProduct);
+  }, [id, token]);
 
-  const addToCart = async () => {
-    const res = await fetch(`http://localhost:5000/api/cart/${id}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    const data = await res.json();
-    alert(data.message || "Added to cart");
+  const handleAddToCart = async () => {
+    setAdding(true);
+    for (let i = 0; i < quantity; i++) {
+      const res = await fetch(`${API}/api/cart/${id}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        showToast(data.error || "Failed to add to cart", "error");
+        setAdding(false);
+        return;
+      }
+    }
+    showToast(`Added ${quantity} item${quantity > 1 ? "s" : ""} to cart`, "success");
+    refreshCart();
+    setAdding(false);
   };
 
-  if (loading) return <p>Loading...</p>;
-  if (!product) return <p>Product not found</p>;
+  if (!product) {
+    return (
+      <Box sx={{ maxWidth: 900, mx: "auto" }}>
+        <Box sx={{ display: "flex", gap: 4, flexDirection: { xs: "column", md: "row" } }}>
+          <Skeleton variant="rectangular" sx={{ width: { xs: "100%", md: 420 }, height: 380, borderRadius: 2, bgcolor: "#27272a" }} />
+          <Box sx={{ flex: 1 }}>
+            <Skeleton width="80%" height={36} sx={{ bgcolor: "#27272a" }} />
+            <Skeleton width="30%" height={36} sx={{ bgcolor: "#27272a", mt: 2 }} />
+            <Skeleton width="100%" height={60} sx={{ bgcolor: "#27272a", mt: 2 }} />
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
-    <div style={{ padding: "20px", maxWidth: "800px", margin: "auto" }}>
-      {/* IMAGE */}
-      {product.imageUrl ? (
-        <img
-          src={`http://localhost:5000${product.imageUrl}`}
-          alt={product.name}
-          style={{
-            width: "100%",
-            maxWidth: "350px",
-            borderRadius: "10px",
-            objectFit: "cover",
-            display: "block",
-            margin: "auto"
-          }}
-        />
-      ) : (
-        <div
-          style={{
-            width: "350px",
-            height: "350px",
-            background: "#ddd",
-            margin: "auto",
-            borderRadius: "10px"
-          }}
-        />
-      )}
-
-      {/* DETAILS */}
-      <h2 style={{ marginTop: "20px" }}>{product.name}</h2>
-      <h3 style={{ color: "#3b82f6" }}>₹{product.price}</h3>
-
-      <p style={{ marginTop: "10px", lineHeight: "1.6" }}>
-        {product.description}
-      </p>
-
-      <p style={{ marginTop: "10px", fontWeight: "bold" }}>
-        Stock: {product.stock}
-      </p>
-
-      {/* Buttons */}
-      <div style={{ marginTop: "20px" }}>
-        <button
-          className="btn-success"
-          onClick={addToCart}
-          style={{ width: "150px" }}
+    <Box sx={{ maxWidth: 900, mx: "auto" }}>
+      <Breadcrumbs sx={{ mb: 3 }}>
+        <Link
+          component="button"
+          variant="body2"
+          onClick={() => navigate("/products")}
+          sx={{ color: "#71717a", textDecoration: "none", "&:hover": { color: "#6366f1" } }}
         >
-          Add to Cart
-        </button>
+          Products
+        </Link>
+        <Typography variant="body2">{product.name}</Typography>
+      </Breadcrumbs>
 
-        {user?.role === "ADMIN" && (
-          <button
-            className="btn-primary"
-            style={{ marginLeft: "10px", width: "150px" }}
+      <Box sx={{ display: "flex", gap: 4, flexDirection: { xs: "column", md: "row" } }}>
+        <Card sx={{ flex: "0 0 auto", width: { xs: "100%", md: 420 }, overflow: "hidden" }}>
+          <CardMedia
+            component="img"
+            image={
+              product.imageUrl
+                ? `${API}${product.imageUrl}`
+                : "https://via.placeholder.com/450x400/18181b/71717a?text=No+Image"
+            }
+            alt={product.name}
+            sx={{ height: 380, objectFit: "cover" }}
+          />
+        </Card>
+
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+            {product.name}
+          </Typography>
+
+          <Typography variant="h5" sx={{ fontWeight: 700, mt: 1.5 }}>
+            ₹{product.price.toLocaleString()}
+          </Typography>
+
+          <Typography variant="body2" sx={{ mt: 1.5, color: product.stock > 0 ? "#22c55e" : "#ef4444" }}>
+            {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}
+          </Typography>
+
+          {product.description && (
+            <Typography sx={{ mt: 2.5, color: "#a1a1aa", lineHeight: 1.7, fontSize: "0.9rem" }}>
+              {product.description}
+            </Typography>
+          )}
+
+          {product.stock > 0 && (
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="body2" sx={{ color: "#71717a", mb: 1 }}>
+                Quantity
+              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2.5 }}>
+                <IconButton
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  size="small"
+                  sx={{ border: "1px solid #27272a", color: "#a1a1aa", "&:hover": { borderColor: "#3f3f46" } }}
+                >
+                  <RemoveRounded fontSize="small" />
+                </IconButton>
+                <Typography sx={{ minWidth: 36, textAlign: "center", fontWeight: 600 }}>
+                  {quantity}
+                </Typography>
+                <IconButton
+                  onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                  size="small"
+                  sx={{ border: "1px solid #27272a", color: "#a1a1aa", "&:hover": { borderColor: "#3f3f46" } }}
+                >
+                  <AddRounded fontSize="small" />
+                </IconButton>
+              </Box>
+
+              <Button
+                variant="contained"
+                onClick={handleAddToCart}
+                disabled={adding}
+                sx={{ py: 1.2, px: 3 }}
+              >
+                {adding ? "Adding..." : "Add to cart"}
+              </Button>
+            </Box>
+          )}
+
+          <Button
+            startIcon={<ArrowBackRounded />}
+            onClick={() => navigate("/products")}
+            sx={{ mt: 3, color: "#71717a", textTransform: "none" }}
           >
-            Edit Product
-          </button>
-        )}
-      </div>
-    </div>
+            Back to products
+          </Button>
+        </Box>
+      </Box>
+    </Box>
   );
 }

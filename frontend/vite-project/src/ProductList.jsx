@@ -1,159 +1,255 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  Grid,
+  Card,
+  CardMedia,
+  CardContent,
+  Typography,
+  Button,
+  TextField,
+  Box,
+  InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Skeleton,
+  IconButton,
+} from "@mui/material";
+import {
+  SearchRounded,
+  DeleteRounded,
+  EditRounded,
+  ShoppingCartRounded,
+} from "@mui/icons-material";
+import { ToastContext, CartContext } from "./App";
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function ProductList({ user }) {
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, product: null });
 
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
+  const showToast = useContext(ToastContext);
+  const { refreshCart } = useContext(CartContext);
 
-  // Load products with optional filters
-  const loadProducts = () => {
-    const params = [];
-    if (search) params.push(`search=${encodeURIComponent(search)}`);
-    if (minPrice) params.push(`min=${minPrice}`);
-    if (maxPrice) params.push(`max=${maxPrice}`);
+  const loadProducts = useCallback(
+    (query = "") => {
+      setLoading(true);
+      const url = query
+        ? `${API}/api/products?search=${encodeURIComponent(query)}`
+        : `${API}/api/products`;
 
-    const queryString = params.length ? `?${params.join("&")}` : "";
-
-    fetch(`http://localhost:5000/api/products${queryString}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then((res) => res.json())
-      .then(setProducts);
-  };
+      fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          setProducts(data);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    },
+    [token]
+  );
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [loadProducts]);
 
-  // Add to cart
-  const handleAddToCart = async (id) => {
-    const res = await fetch(`http://localhost:5000/api/cart/${id}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` }
-    });
+  useEffect(() => {
+    const timer = setTimeout(() => loadProducts(search), 400);
+    return () => clearTimeout(timer);
+  }, [search, loadProducts]);
 
-    const data = await res.json();
-    alert(data.message || "Added to cart");
-  };
+  const handleDelete = async () => {
+    const id = deleteDialog.product?.id;
+    if (!id) return;
 
-  // Admin: Delete product
-  const onDelete = async (id) => {
-    if (!confirm("Delete this product?")) return;
-
-    await fetch(`http://localhost:5000/api/products/${id}`, {
+    const res = await fetch(`${API}/api/products/${id}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     });
 
-    loadProducts();
+    if (res.ok) {
+      showToast("Product deleted", "success");
+      loadProducts(search);
+    } else {
+      showToast("Failed to delete product", "error");
+    }
+    setDeleteDialog({ open: false, product: null });
   };
 
-  // Admin: Go to edit page
-  const onEdit = (product) => {
-    navigate(`/admin/edit-product/${product.id}`);
+  const handleAddToCart = async (e, productId) => {
+    e.stopPropagation();
+    const res = await fetch(`${API}/api/cart/${productId}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast("Added to cart", "success");
+      refreshCart();
+    } else {
+      showToast(data.error || "Failed to add", "error");
+    }
   };
 
   return (
-    <div>
-      <h2 style={{ marginBottom: "10px" }}>Products</h2>
+    <Box className="page-container">
+      <TextField
+        placeholder="Search products..."
+        variant="outlined"
+        fullWidth
+        size="small"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        sx={{ mb: 3 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchRounded sx={{ color: "#71717a", fontSize: 20 }} />
+            </InputAdornment>
+          ),
+        }}
+      />
 
-      {/* Filter Bar */}
-      <div className="filter-bar" style={{ marginBottom: "20px", display: "flex", gap: "10px" }}>
-        <input
-          placeholder="Search name…"
-          onChange={(e) => setSearch(e.target.value)}
-        />
-
-        <input
-          type="number"
-          placeholder="Min ₹"
-          onChange={(e) => setMinPrice(e.target.value)}
-        />
-
-        <input
-          type="number"
-          placeholder="Max ₹"
-          onChange={(e) => setMaxPrice(e.target.value)}
-        />
-
-        <button onClick={loadProducts}>Filter</button>
-      </div>
-
-      {/* Product Grid */}
-      <div className="product-grid">
-        {products.map((p) => (
-          <div key={p.id} className="card" style={{ flexDirection: "column", textAlign: "center" }}>
-            
-            {/* IMAGE */}
-            {p.imageUrl ? (
-              <img
-                src={`http://localhost:5000${p.imageUrl}`}
-                alt={p.name}
-                style={{
-                  width: "120px",
-                  height: "120px",
-                  borderRadius: "8px",
-                  objectFit: "cover",
-                  marginBottom: "10px"
-                }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: "120px",
-                  height: "120px",
-                  borderRadius: "8px",
-                  background: "#ddd",
-                  marginBottom: "10px",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  color: "#666"
+      <Grid container spacing={2.5}>
+        {loading
+          ? Array.from({ length: 8 }).map((_, i) => (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={i}>
+              <Card>
+                <Skeleton variant="rectangular" height={180} sx={{ bgcolor: "#27272a" }} />
+                <CardContent>
+                  <Skeleton width="70%" sx={{ bgcolor: "#27272a" }} />
+                  <Skeleton width="40%" sx={{ bgcolor: "#27272a", mt: 1 }} />
+                </CardContent>
+              </Card>
+            </Grid>
+          ))
+          : products.map((p) => (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={p.id}>
+              <Card
+                onClick={() => navigate(`/product/${p.id}`)}
+                sx={{
+                  cursor: "pointer",
+                  transition: "border-color 0.2s",
+                  "&:hover": { borderColor: "#3f3f46" },
                 }}
               >
-                No Image
-              </div>
-            )}
+                <CardMedia
+                  component="img"
+                  height="180"
+                  image={
+                    p.imageUrl
+                      ? `${API}${p.imageUrl}`
+                      : "https://via.placeholder.com/300x200/18181b/71717a?text=No+Image"
+                  }
+                  alt={p.name}
+                  sx={{ objectFit: "cover" }}
+                />
 
-            <h3
-  style={{ margin: "5px 0", cursor: "pointer" }}
-  onClick={() => navigate(`/product/${p.id}`)}
->
-  {p.name}
-</h3>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 500,
+                      mb: 0.5,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {p.name}
+                  </Typography>
 
-            <p style={{ margin: "5px 0", fontWeight: "bold" }}>₹{p.price}</p>
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#fafafa" }}>
+                      ₹{p.price.toLocaleString()}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: p.stock > 0 ? "#22c55e" : "#ef4444" }}>
+                      {p.stock > 0 ? `${p.stock} left` : "Sold out"}
+                    </Typography>
+                  </Box>
 
-            <div style={{ display: "flex", gap: "6px", marginTop: "10px" }}>
-              {/* Customer: Add to cart */}
-              <button
-                className="btn-success"
-                onClick={() => handleAddToCart(p.id)}
-              >
-                Add to Cart
-              </button>
+                  <Box sx={{ display: "flex", gap: 0.5 }}>
+                    {user?.role !== "ADMIN" && (
+                      <Button
+                        variant="contained"
+                        size="small"
+                        fullWidth
+                        disabled={p.stock <= 0}
+                        onClick={(e) => handleAddToCart(e, p.id)}
+                        sx={{ fontSize: "0.78rem", py: 0.6 }}
+                      >
+                        Add to cart
+                      </Button>
+                    )}
 
-              {/* Admin: Edit + Delete */}
-              {user?.role === "ADMIN" && (
-                <>
-                  <button className="btn-primary" onClick={() => onEdit(p)}>
-                    Edit
-                  </button>
+                    {user?.role === "ADMIN" && (
+                      <>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/admin/edit-product/${p.id}`);
+                          }}
+                          sx={{ color: "#71717a", "&:hover": { color: "#6366f1" } }}
+                        >
+                          <EditRounded fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteDialog({ open: true, product: p });
+                          }}
+                          sx={{ color: "#71717a", "&:hover": { color: "#ef4444" } }}
+                        >
+                          <DeleteRounded fontSize="small" />
+                        </IconButton>
+                      </>
+                    )}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+      </Grid>
 
-                  <button className="btn-danger" onClick={() => onDelete(p.id)}>
-                    Delete
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+      {!loading && products.length === 0 && (
+        <Box className="empty-state">
+          <Typography variant="h6" sx={{ color: "#71717a", mb: 1 }}>
+            {search ? `No results for "${search}"` : "No products yet"}
+          </Typography>
+        </Box>
+      )}
+
+      <Dialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, product: null })}
+        PaperProps={{ sx: { bgcolor: "#18181b", border: "1px solid #27272a" } }}
+      >
+        <DialogTitle sx={{ fontSize: "1rem" }}>Delete product</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: "#a1a1aa" }}>
+            Are you sure you want to delete <strong>{deleteDialog.product?.name}</strong>?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button onClick={() => setDeleteDialog({ open: false, product: null })} sx={{ color: "#a1a1aa" }}>
+            Cancel
+          </Button>
+          <Button variant="contained" color="error" onClick={handleDelete} size="small">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }

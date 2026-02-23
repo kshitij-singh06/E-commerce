@@ -7,7 +7,7 @@ exports.getCart = async (req, res) => {
     where: { userId },
     include: {
       product: {
-        select: { name: true, price: true, stock: true }
+        select: { name: true, price: true, stock: true, imageUrl: true }
       }
     }
   });

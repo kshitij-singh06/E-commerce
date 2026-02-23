@@ -10,7 +10,8 @@ const generateToken = (id) => {
 
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email: rawEmail, password, role } = req.body;
+    const email = rawEmail.toLowerCase();
 
     const userExists = await prisma.user.findUnique({ where: { email } });
     if (userExists) {
@@ -28,7 +29,8 @@ exports.register = async (req, res) => {
       },
     });
 
-    res.status(201).json({ message: "User registered successfully", user });
+    const token = generateToken(user.id);
+    res.status(201).json({ message: "User registered successfully", token, user });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -36,7 +38,8 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email: rawEmail, password } = req.body;
+    const email = rawEmail.toLowerCase();
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
