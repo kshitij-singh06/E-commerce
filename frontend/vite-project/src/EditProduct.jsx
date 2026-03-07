@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { CloudUploadRounded } from "@mui/icons-material";
 import { ToastContext } from "./App";
-import { API, authHeaders } from "./api";
+import { API, authHeaders, imageUrl } from "./api";
 
 
 
@@ -41,7 +41,7 @@ export default function EditProduct() {
         setPrice(data.price);
         setStock(data.stock);
         setDescription(data.description || "");
-        if (data.imageUrl) setPreview(`${API}${data.imageUrl}`);
+        if (data.imageUrl) setPreview(imageUrl(data.imageUrl));
       });
   }, [id]);
 

@@ -24,7 +24,7 @@ import {
   ShoppingCartRounded,
 } from "@mui/icons-material";
 import { ToastContext, CartContext } from "./App";
-import { API, authHeaders } from "./api";
+import { API, authHeaders, imageUrl } from "./api";
 
 export default function ProductList({ user }) {
   const [products, setProducts] = useState([]);
@@ -144,7 +144,7 @@ export default function ProductList({ user }) {
                   height="180"
                   image={
                     p.imageUrl
-                      ? `${API}${p.imageUrl}`
+                      ? imageUrl(p.imageUrl)
                       : `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" fill="%2318181b"><rect width="300" height="200"/><text x="150" y="100" text-anchor="middle" fill="%2371717a" font-size="14" font-family="sans-serif">No Image</text></svg>')}`
                   }
                   alt={p.name}

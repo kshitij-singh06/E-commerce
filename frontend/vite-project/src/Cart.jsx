@@ -16,7 +16,7 @@ import {
   ShoppingCartRounded,
 } from "@mui/icons-material";
 import { ToastContext, CartContext } from "./App";
-import { API, authHeaders, authJsonHeaders } from "./api";
+import { API, authHeaders, authJsonHeaders, imageUrl } from "./api";
 
 
 
@@ -125,7 +125,7 @@ export default function Cart() {
         <Card key={item.id} sx={{ mb: 1.5, p: 2, display: "flex", alignItems: "center", gap: 2 }}>
           <Box
             component="img"
-            src={item.product.imageUrl ? `${API}${item.product.imageUrl}` : `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="%2318181b"><rect width="80" height="80"/><text x="40" y="42" text-anchor="middle" fill="%2371717a" font-size="10" font-family="sans-serif">N/A</text></svg>')}`}
+            src={item.product.imageUrl ? imageUrl(item.product.imageUrl) : `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="%2318181b"><rect width="80" height="80"/><text x="40" y="42" text-anchor="middle" fill="%2371717a" font-size="10" font-family="sans-serif">N/A</text></svg>')}`}
             alt={item.product.name}
             sx={{ width: 64, height: 64, borderRadius: 1.5, objectFit: "cover", flexShrink: 0 }}
           />

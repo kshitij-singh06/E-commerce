@@ -1,12 +1,17 @@
 const prisma = require('../utils/prisma');
-const fs = require('fs');
-const path = require('path');
+const { v2: cloudinary } = require('cloudinary');
 
-// Helper: delete old image file if it exists
-function deleteImageFile(imageUrl) {
-  if (!imageUrl) return;
-  const filePath = path.join(__dirname, '../../', imageUrl);
-  fs.unlink(filePath, () => { }); // silently ignore errors
+// Helper: delete image from Cloudinary by URL
+async function deleteCloudinaryImage(imageUrl) {
+  if (!imageUrl || !imageUrl.includes('cloudinary')) return;
+  try {
+    // Extract public_id from URL: .../ecommerce-products/filename.ext
+    const parts = imageUrl.split('/');
+    const folder = parts[parts.length - 2];
+    const fileWithExt = parts[parts.length - 1];
+    const publicId = `${folder}/${fileWithExt.split('.')[0]}`;
+    await cloudinary.uploader.destroy(publicId);
+  } catch { /* silently ignore cleanup errors */ }
 }
 
 // CREATE product
@@ -14,7 +19,7 @@ exports.createProduct = async (req, res) => {
   try {
     const { name, price, stock, description } = req.body;
 
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    const imageUrl = req.file ? req.file.path : null;
 
     const product = await prisma.product.create({
       data: {
@@ -96,8 +101,8 @@ exports.updateProduct = async (req, res) => {
       updateData.stock = Number(req.body.stock);
 
     if (req.file) {
-      deleteImageFile(product.imageUrl);
-      updateData.imageUrl = `/uploads/${req.file.filename}`;
+      await deleteCloudinaryImage(product.imageUrl);
+      updateData.imageUrl = req.file.path;
     }
 
     const updated = await prisma.product.update({
@@ -121,7 +126,7 @@ exports.deleteProduct = async (req, res) => {
       return res.status(404).json({ error: "Product not found" });
     }
 
-    deleteImageFile(product.imageUrl);
+    await deleteCloudinaryImage(product.imageUrl);
     await prisma.product.delete({ where: { id } });
     res.json({ message: "Product deleted successfully" });
   } catch (err) {

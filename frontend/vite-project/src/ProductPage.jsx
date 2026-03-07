@@ -17,7 +17,7 @@ import {
   RemoveRounded,
 } from "@mui/icons-material";
 import { ToastContext, CartContext } from "./App";
-import { API, authHeaders, authJsonHeaders } from "./api";
+import { API, authHeaders, authJsonHeaders, imageUrl } from "./api";
 
 export default function ProductPage() {
   const { id } = useParams();
@@ -91,7 +91,7 @@ export default function ProductPage() {
             component="img"
             image={
               product.imageUrl
-                ? `${API}${product.imageUrl}`
+                ? imageUrl(product.imageUrl)
                 : `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="450" height="400" fill="%2318181b"><rect width="450" height="400"/><text x="225" y="200" text-anchor="middle" fill="%2371717a" font-size="16" font-family="sans-serif">No Image</text></svg>')}`
             }
             alt={product.name}

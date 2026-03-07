@@ -11,3 +11,10 @@ export function authJsonHeaders() {
         ...authHeaders(),
     };
 }
+
+// Resolve image URL: full URLs (Cloudinary) pass through, relative paths get API prefix
+export function imageUrl(url) {
+    if (!url) return null;
+    if (url.startsWith("http")) return url;
+    return `${API}${url}`;
+}
