@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -7,25 +8,26 @@ import {
   IconButton,
   Skeleton,
   Divider,
+  Button,
 } from "@mui/material";
 import { ExpandMoreRounded, ExpandLessRounded, ReceiptLongRounded } from "@mui/icons-material";
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API, authHeaders } from "./api";
 
 export default function Orders() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState({});
-  const token = localStorage.getItem("token");
+
 
   useEffect(() => {
     fetch(`${API}/api/orders`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: authHeaders(),
     })
       .then((res) => res.json())
       .then((data) => { setOrders(data); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [token]);
+  }, []);
 
   const toggle = (id) => setExpanded((p) => ({ ...p, [id]: !p[id] }));
 
@@ -42,7 +44,12 @@ export default function Orders() {
   if (orders.length === 0) {
     return (
       <Box className="empty-state">
-        <Typography variant="h6" sx={{ color: "#71717a" }}>No orders yet</Typography>
+        <ReceiptLongRounded sx={{ fontSize: 48, color: "#27272a", mb: 1.5 }} />
+        <Typography variant="h6" sx={{ color: "#71717a", mb: 1 }}>No orders yet</Typography>
+        <Typography variant="body2" sx={{ color: "#52525b", mb: 2 }}>Your order history will appear here</Typography>
+        <Button variant="outlined" onClick={() => navigate("/products")} sx={{ color: "#a1a1aa", borderColor: "#27272a" }}>
+          Browse products
+        </Button>
       </Box>
     );
   }

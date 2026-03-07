@@ -11,7 +11,7 @@ const router = express.Router();
 
 router.get('/', protect, getCart);
 router.post('/:productId', protect, addToCart);
-router.put('/:id', protect, updateCartItem);  // 👈 MUST exist
+router.put('/:id', protect, updateCartItem);
 router.delete('/:id', protect, removeFromCart);
 
 module.exports = router;

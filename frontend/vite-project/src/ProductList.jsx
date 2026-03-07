@@ -24,8 +24,7 @@ import {
   ShoppingCartRounded,
 } from "@mui/icons-material";
 import { ToastContext, CartContext } from "./App";
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API, authHeaders } from "./api";
 
 export default function ProductList({ user }) {
   const [products, setProducts] = useState([]);
@@ -33,7 +32,7 @@ export default function ProductList({ user }) {
   const [loading, setLoading] = useState(true);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, product: null });
 
-  const token = localStorage.getItem("token");
+
   const navigate = useNavigate();
   const showToast = useContext(ToastContext);
   const { refreshCart } = useContext(CartContext);
@@ -46,7 +45,7 @@ export default function ProductList({ user }) {
         : `${API}/api/products`;
 
       fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders(),
       })
         .then((res) => res.json())
         .then((data) => {
@@ -55,12 +54,10 @@ export default function ProductList({ user }) {
         })
         .catch(() => setLoading(false));
     },
-    [token]
+    [],
   );
 
-  useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
+
 
   useEffect(() => {
     const timer = setTimeout(() => loadProducts(search), 400);
@@ -73,7 +70,7 @@ export default function ProductList({ user }) {
 
     const res = await fetch(`${API}/api/products/${id}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: authHeaders(),
     });
 
     if (res.ok) {
@@ -89,7 +86,7 @@ export default function ProductList({ user }) {
     e.stopPropagation();
     const res = await fetch(`${API}/api/cart/${productId}`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: authHeaders(),
     });
     const data = await res.json();
     if (res.ok) {
@@ -148,7 +145,7 @@ export default function ProductList({ user }) {
                   image={
                     p.imageUrl
                       ? `${API}${p.imageUrl}`
-                      : "https://via.placeholder.com/300x200/18181b/71717a?text=No+Image"
+                      : `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" fill="%2318181b"><rect width="300" height="200"/><text x="150" y="100" text-anchor="middle" fill="%2371717a" font-size="14" font-family="sans-serif">No Image</text></svg>')}`
                   }
                   alt={p.name}
                   sx={{ objectFit: "cover" }}
@@ -168,54 +165,49 @@ export default function ProductList({ user }) {
                     {p.name}
                   </Typography>
 
-                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#fafafa" }}>
-                      ₹{p.price.toLocaleString()}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: p.stock > 0 ? "#22c55e" : "#ef4444" }}>
-                      {p.stock > 0 ? `${p.stock} left` : "Sold out"}
-                    </Typography>
-                  </Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#fafafa" }}>
+                    ₹{p.price.toLocaleString()}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: p.stock > 0 ? "#22c55e" : "#ef4444", display: "block", mb: 1.5 }}>
+                    {p.stock > 0 ? `${p.stock} in stock` : "Sold out"}
+                  </Typography>
 
-                  <Box sx={{ display: "flex", gap: 0.5 }}>
-                    {user?.role !== "ADMIN" && (
-                      <Button
-                        variant="contained"
+                  <Button
+                    variant="contained"
+                    size="small"
+                    fullWidth
+                    disabled={p.stock <= 0}
+                    onClick={(e) => handleAddToCart(e, p.id)}
+                    startIcon={<ShoppingCartRounded sx={{ fontSize: 16 }} />}
+                    sx={{ fontSize: "0.78rem", py: 0.6, mb: user?.role === "ADMIN" ? 1 : 0 }}
+                  >
+                    Add to cart
+                  </Button>
+
+                  {user?.role === "ADMIN" && (
+                    <Box sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}>
+                      <IconButton
                         size="small"
-                        fullWidth
-                        disabled={p.stock <= 0}
-                        onClick={(e) => handleAddToCart(e, p.id)}
-                        sx={{ fontSize: "0.78rem", py: 0.6 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/admin/edit-product/${p.id}`);
+                        }}
+                        sx={{ color: "#71717a", "&:hover": { color: "#6366f1" } }}
                       >
-                        Add to cart
-                      </Button>
-                    )}
-
-                    {user?.role === "ADMIN" && (
-                      <>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/admin/edit-product/${p.id}`);
-                          }}
-                          sx={{ color: "#71717a", "&:hover": { color: "#6366f1" } }}
-                        >
-                          <EditRounded fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteDialog({ open: true, product: p });
-                          }}
-                          sx={{ color: "#71717a", "&:hover": { color: "#ef4444" } }}
-                        >
-                          <DeleteRounded fontSize="small" />
-                        </IconButton>
-                      </>
-                    )}
-                  </Box>
+                        <EditRounded fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteDialog({ open: true, product: p });
+                        }}
+                        sx={{ color: "#71717a", "&:hover": { color: "#ef4444" } }}
+                      >
+                        <DeleteRounded fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  )}
                 </CardContent>
               </Card>
             </Grid>

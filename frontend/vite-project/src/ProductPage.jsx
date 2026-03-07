@@ -17,13 +17,11 @@ import {
   RemoveRounded,
 } from "@mui/icons-material";
 import { ToastContext, CartContext } from "./App";
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API, authHeaders, authJsonHeaders } from "./api";
 
 export default function ProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
   const showToast = useContext(ToastContext);
   const { refreshCart } = useContext(CartContext);
 
@@ -32,29 +30,29 @@ export default function ProductPage() {
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
-    fetch(`${API}/api/products/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(`${API}/api/products/${id}`, { headers: authHeaders() })
       .then((res) => res.json())
       .then(setProduct);
-  }, [id, token]);
+  }, [id]);
 
   const handleAddToCart = async () => {
     setAdding(true);
-    for (let i = 0; i < quantity; i++) {
+    try {
       const res = await fetch(`${API}/api/cart/${id}`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authJsonHeaders(),
+        body: JSON.stringify({ quantity }),
       });
       if (!res.ok) {
         const data = await res.json();
         showToast(data.error || "Failed to add to cart", "error");
-        setAdding(false);
-        return;
+      } else {
+        showToast(`Added ${quantity} item${quantity > 1 ? "s" : ""} to cart`, "success");
+        refreshCart();
       }
+    } catch {
+      showToast("Failed to add to cart", "error");
     }
-    showToast(`Added ${quantity} item${quantity > 1 ? "s" : ""} to cart`, "success");
-    refreshCart();
     setAdding(false);
   };
 
@@ -94,7 +92,7 @@ export default function ProductPage() {
             image={
               product.imageUrl
                 ? `${API}${product.imageUrl}`
-                : "https://via.placeholder.com/450x400/18181b/71717a?text=No+Image"
+                : `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="450" height="400" fill="%2318181b"><rect width="450" height="400"/><text x="225" y="200" text-anchor="middle" fill="%2371717a" font-size="16" font-family="sans-serif">No Image</text></svg>')}`
             }
             alt={product.name}
             sx={{ height: 380, objectFit: "cover" }}

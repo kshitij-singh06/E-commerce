@@ -10,8 +10,9 @@ import {
 } from "@mui/material";
 import { CloudUploadRounded } from "@mui/icons-material";
 import { ToastContext } from "./App";
+import { API, authHeaders } from "./api";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 
 export default function AddProduct() {
   const [name, setName] = useState("");
@@ -22,7 +23,7 @@ export default function AddProduct() {
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const token = localStorage.getItem("token");
+
   const navigate = useNavigate();
   const showToast = useContext(ToastContext);
 
@@ -46,7 +47,7 @@ export default function AddProduct() {
     try {
       const res = await fetch(`${API}/api/products`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders(),
         body: formData,
       });
       const data = await res.json();

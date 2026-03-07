@@ -12,8 +12,9 @@ import {
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { ToastContext } from "./App";
+import { API } from "./api";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 
 export default function Signup({ onSignup }) {
   const [name, setName] = useState("");

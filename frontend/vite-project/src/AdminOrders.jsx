@@ -9,23 +9,22 @@ import {
     Divider,
 } from "@mui/material";
 import { ExpandMoreRounded, ExpandLessRounded, ReceiptLongRounded } from "@mui/icons-material";
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API, authHeaders } from "./api";
 
 export default function AdminOrders() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [expanded, setExpanded] = useState({});
-    const token = localStorage.getItem("token");
+
 
     useEffect(() => {
         fetch(`${API}/api/orders/all`, {
-            headers: { Authorization: `Bearer ${token}` },
+            headers: authHeaders(),
         })
             .then((res) => res.json())
             .then((data) => { setOrders(data); setLoading(false); })
             .catch(() => setLoading(false));
-    }, [token]);
+    }, []);
 
     const toggle = (id) => setExpanded((p) => ({ ...p, [id]: !p[id] }));
 

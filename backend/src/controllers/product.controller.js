@@ -1,7 +1,15 @@
 const prisma = require('../utils/prisma');
+const fs = require('fs');
+const path = require('path');
+
+// Helper: delete old image file if it exists
+function deleteImageFile(imageUrl) {
+  if (!imageUrl) return;
+  const filePath = path.join(__dirname, '../../', imageUrl);
+  fs.unlink(filePath, () => { }); // silently ignore errors
+}
 
 // CREATE product
-
 exports.createProduct = async (req, res) => {
   try {
     const { name, price, stock, description } = req.body;
@@ -24,30 +32,29 @@ exports.createProduct = async (req, res) => {
   }
 };
 
-
 // GET all products with search and price filters
 exports.getProducts = async (req, res) => {
-  const { search, min, max } = req.query;
-  const where = {};
-  
-  if (search) {
-    where.name = { contains: search, mode: 'insensitive' };
-  }
-  
-  if (min || max) {
-    where.price = {};
-    if (min) where.price.gte = Number(min);
-    if (max) where.price.lte = Number(max);
-  }
-  
   try {
+    const { search, min, max } = req.query;
+    const where = {};
+
+    if (search) {
+      where.name = { contains: search, mode: 'insensitive' };
+    }
+
+    if (min || max) {
+      where.price = {};
+      if (min) where.price.gte = Number(min);
+      if (max) where.price.lte = Number(max);
+    }
+
     const products = await prisma.product.findMany({
       where,
       orderBy: { createdAt: 'desc' },
     });
     res.json(products);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Could not fetch products" });
   }
 };
 
@@ -62,7 +69,7 @@ exports.getProduct = async (req, res) => {
 
     res.json(product);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Could not fetch product" });
   }
 };
 
@@ -89,6 +96,7 @@ exports.updateProduct = async (req, res) => {
       updateData.stock = Number(req.body.stock);
 
     if (req.file) {
+      deleteImageFile(product.imageUrl);
       updateData.imageUrl = `/uploads/${req.file.filename}`;
     }
 
@@ -98,48 +106,25 @@ exports.updateProduct = async (req, res) => {
     });
 
     res.json(updated);
-
   } catch (err) {
-    console.error("Update error:", err);
     res.status(500).json({ error: "Failed to update product" });
   }
 };
-
-
-
 
 // DELETE product
 exports.deleteProduct = async (req, res) => {
   const id = Number(req.params.id);
 
   try {
+    const product = await prisma.product.findUnique({ where: { id } });
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    deleteImageFile(product.imageUrl);
     await prisma.product.delete({ where: { id } });
     res.json({ message: "Product deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete product" });
   }
 };
-
-
-// ```
-
-// ## How to use the new filtering:
-
-// **Search by name:**
-// ```
-// GET /api/products?search=laptop
-// ```
-
-// **Filter by minimum price:**
-// ```
-// GET /api/products?min=100
-// ```
-
-// **Filter by maximum price:**
-// ```
-// GET /api/products?max=500
-// ```
-
-// **Combine filters:**
-// ```
-// GET /api/products?search=phone&min=200&max=1000

@@ -41,7 +41,6 @@ exports.placeOrder = async (req, res) => {
         data: {
           userId,
           totalAmount,
-          // status will default to PENDING from schema
         },
       });
 

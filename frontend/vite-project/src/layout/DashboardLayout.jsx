@@ -33,6 +33,15 @@ export default function DashboardLayout({ user, logout, cartCount = 0 }) {
   const nav = isAdmin
     ? [
       { label: "Products", icon: <Inventory2Rounded />, to: "/products" },
+      {
+        label: "Cart",
+        icon: (
+          <Badge badgeContent={cartCount} color="primary" max={99}>
+            <ShoppingCartRounded />
+          </Badge>
+        ),
+        to: "/cart",
+      },
       { label: "Add Product", icon: <AddBoxRounded />, to: "/admin/add-product" },
       { label: "Orders", icon: <ListAltRounded />, to: "/admin/orders" },
     ]

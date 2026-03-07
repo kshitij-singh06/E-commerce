@@ -11,13 +11,14 @@ import {
 } from "@mui/material";
 import { CloudUploadRounded } from "@mui/icons-material";
 import { ToastContext } from "./App";
+import { API, authHeaders } from "./api";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 
 export default function EditProduct() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
+
   const showToast = useContext(ToastContext);
 
   const [product, setProduct] = useState(null);
@@ -31,7 +32,7 @@ export default function EditProduct() {
 
   useEffect(() => {
     fetch(`${API}/api/products/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: authHeaders(),
     })
       .then((res) => res.json())
       .then((data) => {
@@ -42,7 +43,7 @@ export default function EditProduct() {
         setDescription(data.description || "");
         if (data.imageUrl) setPreview(`${API}${data.imageUrl}`);
       });
-  }, [id, token]);
+  }, [id]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -64,7 +65,7 @@ export default function EditProduct() {
     try {
       const res = await fetch(`${API}/api/products/${id}`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders(),
         body: formData,
       });
       const data = await res.json();

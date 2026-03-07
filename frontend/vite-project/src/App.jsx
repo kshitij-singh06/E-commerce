@@ -12,9 +12,9 @@ import EditProduct from "./EditProduct";
 import ProductPage from "./ProductPage";
 import DashboardLayout from "./layout/DashboardLayout";
 
-import { ThemeProvider, createTheme, CssBaseline, Snackbar, Alert } from "@mui/material";
+import { ThemeProvider, createTheme, CssBaseline, Snackbar, Alert, Box, Typography, CircularProgress } from "@mui/material";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API, authHeaders } from "./api";
 
 const theme = createTheme({
   palette: {
@@ -78,6 +78,33 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [toast, setToast] = useState({ open: false, message: "", severity: "success" });
   const [cartCount, setCartCount] = useState(0);
+  const [backendReady, setBackendReady] = useState(false);
+  const [showWaking, setShowWaking] = useState(false);
+
+  // Cold-start detection: ping health endpoint, retry on failure
+  useEffect(() => {
+    let cancelled = false;
+    const wakingTimer = setTimeout(() => setShowWaking(true), 2000);
+
+    const ping = () => {
+      fetch(`${API}/api/health`)
+        .then((res) => {
+          if (res.ok && !cancelled) {
+            setBackendReady(true);
+            clearTimeout(wakingTimer);
+            setShowWaking(false);
+          } else if (!cancelled) {
+            setTimeout(ping, 3000);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setTimeout(ping, 3000);
+        });
+    };
+    ping();
+
+    return () => { cancelled = true; clearTimeout(wakingTimer); };
+  }, []);
 
   const refreshCart = useCallback(() => {
     const t = localStorage.getItem("token");
@@ -139,6 +166,22 @@ export default function App() {
         <CssBaseline />
         <ToastContext.Provider value={showToast}>
           <CartContext.Provider value={{ cartCount, refreshCart }}>
+            {!backendReady && showWaking && (
+              <Box sx={{
+                position: "fixed", inset: 0, zIndex: 9999,
+                display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center",
+                bgcolor: "#09090b",
+              }}>
+                <CircularProgress size={32} sx={{ color: "#6366f1", mb: 2 }} />
+                <Typography variant="body1" sx={{ fontWeight: 600, color: "#fafafa" }}>
+                  Server is waking up...
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#71717a", mt: 0.5 }}>
+                  Free tier cold start — please wait a moment
+                </Typography>
+              </Box>
+            )}
             <Routes>
               <Route
                 path="/login"
@@ -160,9 +203,9 @@ export default function App() {
                 <Route path="/product/:id" element={<ProductPage user={user} />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/orders" element={<Orders />} />
-                <Route path="/admin/add-product" element={<AddProduct />} />
-                <Route path="/admin/edit-product/:id" element={<EditProduct />} />
-                <Route path="/admin/orders" element={<AdminOrders />} />
+                <Route path="/admin/add-product" element={!user ? null : user.role === "ADMIN" ? <AddProduct /> : <Navigate to="/products" />} />
+                <Route path="/admin/edit-product/:id" element={!user ? null : user.role === "ADMIN" ? <EditProduct /> : <Navigate to="/products" />} />
+                <Route path="/admin/orders" element={!user ? null : user.role === "ADMIN" ? <AdminOrders /> : <Navigate to="/products" />} />
               </Route>
 
               <Route path="/" element={<Navigate to={isLoggedIn ? "/products" : "/login"} />} />

@@ -13,17 +13,19 @@ import {
   AddRounded,
   RemoveRounded,
   DeleteRounded,
+  ShoppingCartRounded,
 } from "@mui/icons-material";
 import { ToastContext, CartContext } from "./App";
+import { API, authHeaders, authJsonHeaders } from "./api";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 
 export default function Cart() {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
   const [checkingOut, setCheckingOut] = useState(false);
 
-  const token = localStorage.getItem("token");
+
   const navigate = useNavigate();
   const showToast = useContext(ToastContext);
   const { refreshCart } = useContext(CartContext);
@@ -31,7 +33,7 @@ export default function Cart() {
   const loadCart = (showLoader = false) => {
     if (showLoader) setLoading(true);
     fetch(`${API}/api/cart`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: authHeaders(),
     })
       .then((res) => res.json())
       .then((data) => {
@@ -53,7 +55,7 @@ export default function Cart() {
     );
     await fetch(`${API}/api/cart/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      headers: authJsonHeaders(),
       body: JSON.stringify({ quantity }),
     });
     refreshCart();
@@ -63,7 +65,7 @@ export default function Cart() {
     setCart((prev) => prev.filter((item) => item.id !== id));
     await fetch(`${API}/api/cart/${id}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: authHeaders(),
     });
     showToast("Item removed", "info");
     refreshCart();
@@ -74,7 +76,7 @@ export default function Cart() {
     try {
       const res = await fetch(`${API}/api/orders`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders(),
       });
       if (res.ok) {
         showToast("Order placed successfully", "success");
@@ -106,6 +108,7 @@ export default function Cart() {
   if (cart.length === 0) {
     return (
       <Box className="empty-state">
+        <ShoppingCartRounded sx={{ fontSize: 48, color: "#27272a", mb: 1.5 }} />
         <Typography variant="h6" sx={{ color: "#71717a", mb: 1 }}>
           Your cart is empty
         </Typography>
@@ -122,7 +125,7 @@ export default function Cart() {
         <Card key={item.id} sx={{ mb: 1.5, p: 2, display: "flex", alignItems: "center", gap: 2 }}>
           <Box
             component="img"
-            src={item.product.imageUrl ? `${API}${item.product.imageUrl}` : "https://via.placeholder.com/80/18181b/71717a?text=N/A"}
+            src={item.product.imageUrl ? `${API}${item.product.imageUrl}` : `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="%2318181b"><rect width="80" height="80"/><text x="40" y="42" text-anchor="middle" fill="%2371717a" font-size="10" font-family="sans-serif">N/A</text></svg>')}`}
             alt={item.product.name}
             sx={{ width: 64, height: 64, borderRadius: 1.5, objectFit: "cover", flexShrink: 0 }}
           />
