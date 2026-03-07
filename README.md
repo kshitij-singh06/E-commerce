@@ -171,11 +171,7 @@ createdAt     createdAt
 ```bash
 cd backend
 npm install
-
-# Create .env file
-# DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ecommerce_db?schema=public"
-# JWT_SECRET="your-secret-key"
-# PORT=5000
+cp .env.example .env        # Then edit .env with your database credentials
 
 npx prisma generate
 npx prisma migrate dev
@@ -186,6 +182,7 @@ npm run dev                 # Starts on port 5000
 ```bash
 cd frontend/vite-project
 npm install
+cp .env.example .env        # Edit VITE_API_URL if needed
 npm run dev                 # Starts on port 5173
 ```
 
@@ -195,6 +192,38 @@ curl -X POST http://localhost:5000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"name":"Admin","email":"admin@demo.com","password":"Admin@123","role":"ADMIN"}'
 ```
+
+---
+
+## Running Tests
+
+### Backend Tests (Jest)
+```bash
+cd backend
+npm test
+```
+
+**Unit tests** (`tests/unit.test.js`):
+- Password hashing — bcrypt hash/compare correctness
+- JWT tokens — generation, verification, rejection of invalid secrets
+- Role middleware — admin access granted, non-admin blocked with 403
+
+**API tests** (`tests/api.test.js`):
+- `POST /api/auth/register` — user creation, duplicate rejection, validation
+- `POST /api/auth/login` — authentication, wrong credentials handling
+
+### Frontend Tests (Vitest)
+```bash
+cd frontend/vite-project
+npm test
+```
+
+**Component tests:**
+- `Login.test.jsx` — form rendering, button state, navigation links
+- `Signup.test.jsx` — form fields, submit button, login redirect link
+
+**Integration test:**
+- `api.test.js` — API URL configuration, auth header construction, token flow
 
 ---
 
